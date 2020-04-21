@@ -2,13 +2,21 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Pdf")
 import matplotlib.pyplot as plt
 # from keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 from scipy.ndimage import uniform_filter1d
 from sklearn.preprocessing import StandardScaler
 
-
+from keras.models import Sequential, Model
+from keras.layers import Conv1D, MaxPool1D, Dense, Dropout, Flatten, \
+BatchNormalization, Input, concatenate, Activation
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint
+from sklearn.metrics import cohen_kappa_score, f1_score
+from sklearn.metrics import classification_report
 ##----------------------------Data preprocessing-------------------------------
 # Load train and test data
 test_data = pd.read_csv('exoTest.csv')
@@ -114,25 +122,52 @@ X_test = reduce_upper_outliers(X_test)
 # Smooth data
 for i in X.columns:
     X[i] = (30*X[i] + uniform_filter1d(X[i], size=100))/31
+X = X.values
 
+for i in X_test.columns:
+    X_test[i] = (30*X_test[i] + uniform_filter1d(X_test[i], size=100))/31
+X_test = X_test.values
 
 #train, validation splitting
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
-# Feature Scaling
-sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_val = sc.transform(X_val)
-X_test = sc.transform(X_test)
 
 # balance the data
 # Since it is a extremely imbalanced data, here I use SMOTE oversampling on training set to increase the number of confirmed exo-planet star(label 2)
 # But it is not the only way to deal with imbalanced data.
 # We can change the class weight in loss function as well. if doing this way, we don't have to oversample
 # the data. We can try later to see which way gets better performance!
-from imblearn.over_sampling import SMOTE
-X_train, y_train = SMOTE().fit_resample(X_train, y_train)
-print(pd.Series(y_train).value_counts())
+
+# from imblearn.over_sampling import SMOTE
+# X_train, y_train = SMOTE().fit_resample(X_train, y_train)
+# print(pd.Series(y_train).value_counts())
+# print(X_train.shape, y_train.shape)
+# print(X_train.shape[1])
+
+# generate more data using rotation
+x_train_positives = X_train[np.squeeze(y_train) == 1]
+x_train_negatives = X_train[np.squeeze(y_train) == 0]
+
+num_rotations = 100
+for i in range(len(x_train_positives)):
+     for r in range(num_rotations):
+          rotated_row = np.roll(X_train[i,:], shift = r)
+          X_train = np.vstack([X_train, rotated_row])
+
+y_train = np.vstack([y_train, np.array([1] * len(x_train_positives) * num_rotations).reshape(-1,1)])
+print(X_train.shape, y_train.shape)
+
+print(pd.Series(y_train.reshape(6969,)).value_counts())
+# Feature Scaling and Reshape to 3 dimension
+# sc = StandardScaler()
+# X_train = sc.fit_transform(X_train)
+# X_val = sc.transform(X_val)
+# X_test = sc.transform(X_test)
+
+## data scaling and reshape
+X_train = ((X_train - np.mean(X_train, axis=1).reshape(-1,1)) / np.std(X_train, axis=1).reshape(-1,1))[:,:,np.newaxis]
+X_val = ((X_val - np.mean(X_val, axis=1).reshape(-1,1)) / np.std(X_val, axis=1).reshape(-1,1))[:,:,np.newaxis]
+X_test = ((X_test - np.mean(X_test, axis=1).reshape(-1,1)) / np.std(X_test, axis=1).reshape(-1,1))[:,:,np.newaxis]
 
 
 # k_fold cross validation
