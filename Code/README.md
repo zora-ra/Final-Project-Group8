@@ -1,13 +1,13 @@
 Source of dataset: https://www.kaggle.com/keplersmachines/kepler-labelled-time-series-data
 
-Or you can download it from data folder
+Or you can download it from 'data' folder
 
 Please run our code in this sequence:
 
-preprocessing_plot.py 
+1. preprocessing_plot.py 
 
-MLP.py
+2. MLP.py
 
-CNN.py
+3. CNN.py
 
-RNN.py
+4. RNN.py
