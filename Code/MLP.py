@@ -1,3 +1,4 @@
+##--------------------------------Imports-----------------------------------------
 import numpy as np
 import pandas as pd
 from keras.engine.saving import load_model
@@ -12,7 +13,7 @@ import matplotlib
 matplotlib.use("Pdf")
 import matplotlib.pyplot as plt
 
-##----------------------------Data preprocessing-------------------------------
+##----------------------------Data Preprocessing-------------------------------
 # Load train and test data
 test_data = pd.read_csv('exoTest.csv')
 train_data = pd.read_csv('exoTrain.csv')
@@ -22,8 +23,8 @@ print(test_data.shape)
 print(train_data.shape)
 
 # Take a look at the first few rows
-test_data.head()
-train_data.head()
+print(test_data.head())
+print(train_data.head())
 
 # check the distribution of label
 print(train_data.LABEL.value_counts())
@@ -44,8 +45,7 @@ train_data.isnull().values.any()
 # Total count of missing values
 train_data.isnull().sum().sum() # There is no missing vaules, no need to remove
 
-
-# take a look at the shape of features
+# Take a look at the shape of features
 # for i in[0, 9, 14, 19, 24, 29]:
 #     flux = train_data[train_data.LABEL==2].drop('LABEL', axis=1).iloc[i,:]
 #     time = np.arange(len(flux))*(36.0/60.0)
@@ -80,8 +80,7 @@ X_test = test_data.iloc[:, 1:]
 y_test = test_data.iloc[:,:1]
 
 
-# remove upper outliers
-# Since we are looking for dips in flux when exo-planets pass between the telescope and the star,
+# Remove upper outliers; since we are looking for dips in flux when exo-planets pass between the telescope and the star,
 # we should remove any upper outliers.
 def reduce_upper_outliers(df, reduce=0.01, half_width=4):
     length = len(df.iloc[0, :])
@@ -143,8 +142,6 @@ y_train = np.vstack([y_train, np.array([1] * len(x_train_positives) * num_rotati
 print(X_train.shape, y_train.shape)
 
 print(pd.Series(y_train.reshape(y_train.shape[0],)).value_counts())
-# 0 class: 4040; 1 class: 2929
-
 
 # Feature Scaling and Reshape
 X_train = ((X_train - np.mean(X_train, axis=1).reshape(-1,1)) / np.std(X_train, axis=1).reshape(-1,1))[:,:,np.newaxis]
@@ -157,52 +154,38 @@ print(X_train.shape,X_val.shape, y_train.shape, y_val.shape)
 
 
 # ---------------------------- Model -------------------------------
-# create and fit Multilayer Perceptron model
-# model = Sequential()
-# model.add(Dense(64, input_dim=3197, activation='relu'))
-# model.add(Dropout(0.25))
-# model.add(Dense(1, activation='sigmoid'))
-# model.compile(optimizer='adam', loss='binary_crossentropy',
-             # metrics=['accuracy'])
-# model = Sequential()
-# model.add(Dense(64, input_dim=X_train.shape[1], activation='relu'))
-# model.add(Dropout(0.25))
-# model.add(Dense(32, activation='relu'))
-# model.add(Dropout(0.25))
-# model.add(Dense(8, activation='relu'))
-# model.add(Dropout(0.25))
-# model.add(Dense(4, activation='relu'))
-# model.add(Dropout(0.25))
-# model.add(Dense(1, activation = 'sigmoid'))
-# model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+# Create and fit Multilayer Perceptron model
 
-model = Sequential()
-model.add(Dense(64, input_dim=X_train.shape[1], activation='relu'))
+model = Sequential() # initialize network
+model.add(Dense(64, input_dim=X_train.shape[1], activation='relu')) # adding an input layer and the first hidden layer
 model.add(Dropout(0.25))
-model.add(Dense(32, activation='relu'))
+model.add(Dense(32, activation='relu')) # adding the second hidden layer
 model.add(Dropout(0.25))
-model.add(Dense(8, activation='relu'))
+model.add(Dense(8, activation='relu')) # adding the third hidden layer
 model.add(Dropout(0.25))
-model.add(Dense(1, activation = 'sigmoid'))
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.add(Dense(1, activation = 'sigmoid')) # adding the fourth hidden layer
+model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy']) #compiling the MLP
+# model.compile(loss='binary_crossentropy', optimizer='SGD', metrics=['accuracy'])
 
-# simple early stopping
+# Simple Early Stopping to get the best model
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=200)
 mc = ModelCheckpoint('MLP.h5', monitor='val_loss', mode='max', verbose=1, save_best_only=True)
-# fit model
+
+# Fitting the MLP model to the training set
 history = model.fit(X_train, y_train, validation_data=(X_val, y_val), batch_size=3, epochs=15, class_weight='auto',
             callbacks=[es, mc])
-# load the saved model
+# history = model.fit(X_train, y_train, validation_data=(X_val, y_val), batch_size=32, epochs=50, class_weight='auto',
+            # callbacks=[es, mc])
+
+# Load saved model
 saved_model = load_model('MLP.h5')
 
-# history = model.fit(X_train, y_train, batch_size=3, epochs=15, class_weight = 'auto', validation_data=(X_val, y_val),
-          # callbacks=[ModelCheckpoint("MLP.hdf5", monitor="val_loss", save_best_only=True)])
-
-# print model structure
+# Print Model Structure
 model.summary()
 
-# plot loss
+# Plot loss
 N = 15
+# N = 50
 plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, N), history.history["loss"], label="train_loss")
@@ -212,11 +195,11 @@ plt.title("MLP Loss")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss")
 plt.legend(['Train', 'Test'], loc='upper left')
-plt.savefig("Model loss MLP3.png")
+plt.savefig("Model loss MLP4.png")
 plt.close()
 
 # ---------------------------- Prediction and Evaluation -------------------------------
-#  evaluate recall and f1 score
+#  Evaluate f-1 score
 y_pred = model.predict(X_test)
 threshold = 0.5
 print(classification_report(y_test,y_pred >= threshold))
