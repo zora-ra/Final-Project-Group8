@@ -195,7 +195,7 @@ plt.title("MLP Loss")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss")
 plt.legend(['Train', 'Test'], loc='upper left')
-plt.savefig("Model loss MLP4.png")
+plt.savefig("Model loss MLP.png")
 plt.close()
 
 # ---------------------------- Prediction and Evaluation -------------------------------
