@@ -59,6 +59,31 @@ y_test = test_data.iloc[:,:1]
 # the data of confirmed exo-planets star is more fluctuated. So we need to clean the data. We will remove outliers,
 # smooth data and scale features.
 
+## Some experiments, but didn't apply at the end
+
+# # balance the data
+# Since it is a extremely imbalanced data, here I use SMOTE oversampling on training set to increase the number of confirmed exo-planet star(label 2)
+# But it is not the only way to deal with imbalanced data.
+# We can change the class weight in loss function as well. if doing this way, we don't have to oversample
+# the data. We can try later to see which way gets better performance!
+
+# from imblearn.over_sampling import SMOTE
+# X_train, y_train = SMOTE().fit_resample(X_train, y_train)
+# print(pd.Series(y_train).value_counts())
+# print(X_train.shape, y_train.shape)
+# print(X_train.shape[1])
+#
+## generate more data using rotation
+# x_train_positives = X_train[np.squeeze(y_train) == 1]
+# x_train_negatives = X_train[np.squeeze(y_train) == 0]
+#
+# num_rotations = 100
+# for i in range(len(x_train_positives)):
+#      for r in range(num_rotations):
+#           rotated_row = np.roll(X_train[i,:], shift = r)
+#           X_train = np.vstack([X_train, rotated_row])
+
+
 # remove upper outliers
 # Since we are looking for dips in flux when exo-planets pass between the telescope and the star,
 # we should remove any upper outliers.
@@ -142,9 +167,8 @@ def batch_generator(x_train, y_train, batch_size=32):
 batch_generator(X_train, y_train, 32)
 
 
-# RNN model
 ##------------------------------ RNN Model ---------------------------------
-
+# RNN model
 ip = Input(shape=(3197,1))
 x = Permute((2, 1))(ip)
 x = GRU(16, return_sequences=True)(x)
